@@ -11,4 +11,9 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
 
+
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/events', eventRoutes);
+app.use('/api/v1/bookings', bookingRoutes);
+
 export default app;
