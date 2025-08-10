@@ -1,4 +1,4 @@
-import { Schema } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
 const eventSchema = new Schema({
     title: {
@@ -46,7 +46,7 @@ const eventSchema = new Schema({
     },
     category: {
         type: String,
-        enum : ["tech", "music", "finance", "education", "other"],
+        enum : ["tech", "movie", "music", "finance", "education", "other"],
         required: [true, "Category is required"],
         trim: true,
         default: "other",

@@ -1,15 +1,17 @@
-import { asyncHandler } from "../utils/asyncHandler";
-import {User} from "../models/user.model.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import User from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
-import { ApiResponse } from "../utils/ApiResponse";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
 const genearteAccessTokenAndRefreshToken = async (userID) => {
     try {
         const user = await User.findById(userID)
-        const accessToken = user.generateAccessToken();
-        const refreshToken = user.refreshAccessToken();
+        const accessToken = await user.genearteAccessToken();
+        // console.log("Access Token:", accessToken);
+        const refreshToken = await user.refreshAccessToken();
+        // console.log("Refresh Token:", refreshToken);
         user.refreshToken = refreshToken;
         await user.save({ validateBeforeSave: false });
         return { accessToken, refreshToken };
@@ -20,9 +22,9 @@ const genearteAccessTokenAndRefreshToken = async (userID) => {
     }
 }
 const registerUser = asyncHandler(async(req, res) => {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
     if(
-        [name,email,password].some((field)=> field?.trim() === "")
+        [name,email,password,role].some((field)=> field?.trim() === "")
     ){
         throw new ApiError(400, "All fields are required");
     }
@@ -33,7 +35,8 @@ const registerUser = asyncHandler(async(req, res) => {
     const user = await User.create({
         name,
         email,
-        password
+        password,
+        role: role || "attendee" // Default to attendee if no role is provided
     })
     const createdUser = await User.findById(user._id).select("-password -refreshToken");
     if(!createdUser) {
@@ -123,7 +126,7 @@ const refreshAccessToken = asyncHandler(async(req,res)=>{
         }
         const options = {
             httpOnly : true,
-            secure : true
+            secure : true,
         }
         const{accessToken , newRefreshToken} = await genearteAccessTokenAndRefreshToken(user._id)
         console.log(newRefreshToken)
