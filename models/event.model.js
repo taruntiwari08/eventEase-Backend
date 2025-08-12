@@ -20,6 +20,11 @@ const eventSchema = new Schema({
         required: [true, "Location is required"],
         trim: true,
     },
+    locationGoogleMapLink: {
+        type: String,
+        required: [true, "Location Google Map Link is required"],
+        trim: true,
+    },
     organizer: {
         type: Schema.Types.ObjectId,
         ref: "User",
@@ -55,7 +60,13 @@ const eventSchema = new Schema({
         type: Number,
         required: [true, "Capacity is required"],
         min: [1, "Capacity must be at least 1"],
+    },
+    avgRating: { 
+        type: Number, 
+        default: 0 
     }
+
+    
 
 }, { timestamps: true });
 

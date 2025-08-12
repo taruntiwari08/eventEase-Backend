@@ -6,8 +6,8 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import Booking from '../models/booking.model.js';
 
 const createEvent = asyncHandler(async(req,res)=>{
-    const {title,description,date,location,Price,category,capacity} = req.body;
-    if(![title,description,date,location,Price,category,capacity].every(Boolean)){
+    const {title,description,date,location,Price,category,capacity,locationGoogleMapLink} = req.body;
+    if(![title,description,date,location,Price,category,capacity,locationGoogleMapLink].every(Boolean)){
         throw new ApiError(400,"All Fields are Required");
     }
     const eventImagePath = req.file?.path; //  file
@@ -27,6 +27,7 @@ const newEvent = await Event.create({
     description,
     date: Eventdate,
     location,
+    locationGoogleMapLink,
     Price,
     category,
     capacity,

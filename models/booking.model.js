@@ -31,8 +31,25 @@ const bookingSchema = new Schema({
     razorpayPaymentId: {
     type: String,
     },
+    razorpaySignature: {
+    type: String,
+    },
     amountPaid: {
     type: Number,
+    },
+
+    qrCodeData: {
+        payload: { type: String}, // bookingId:randomHex
+        hash: { type: String }     // HMAC hash
+    },
+        
+    qrCode: {
+        type: String 
+    },
+    // New: track if user has checked in at the event
+    checkedIn: {
+        type: Boolean,
+        default: false
     },
 
 

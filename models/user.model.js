@@ -28,9 +28,17 @@ const userSchema = new Schema({
    },
     refreshToken :{
         type: String
+    },
+
+    walletPoints: {
+        type: Number,
+        default: 0,
+        min: [0, "Wallet points cannot be negative"]
     }
 
 },{timestamps: true})
+
+
 
 userSchema.pre("save",async function (next) {
     if(this.isModified("password")){

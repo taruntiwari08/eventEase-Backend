@@ -2,7 +2,6 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import User from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 const genearteAccessTokenAndRefreshToken = async (userID) => {
@@ -24,7 +23,7 @@ const genearteAccessTokenAndRefreshToken = async (userID) => {
 const registerUser = asyncHandler(async(req, res) => {
     const { name, email, password, role } = req.body;
     if(
-        [name,email,password,role].some((field)=> field?.trim() === "")
+        [name,email,password].some((field)=> field?.trim() === "")
     ){
         throw new ApiError(400, "All fields are required");
     }
@@ -60,7 +59,7 @@ const loginUser = asyncHandler(async(req, res) => {
     if(!isPasswordCorrect){
         throw new ApiError(401, "Incorrect password");
     }
-    const { accessToken, refreshToken } = await genearteAccessTokenAndRefreshToken(user._id)
+    const { accessToken,  refreshToken } = await genearteAccessTokenAndRefreshToken(user._id)
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
     const options = {
         httpOnly: true,
@@ -128,7 +127,7 @@ const refreshAccessToken = asyncHandler(async(req,res)=>{
             httpOnly : true,
             secure : true,
         }
-        const{accessToken , newRefreshToken} = await genearteAccessTokenAndRefreshToken(user._id)
+        const{accessToken , refreshToken: newRefreshToken} = await genearteAccessTokenAndRefreshToken(user._id)
         console.log(newRefreshToken)
         return res
         .status(200)
