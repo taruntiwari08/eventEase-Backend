@@ -12,7 +12,6 @@ const getChatHistory = asyncHandler(async (req, res) => {
       .sort({ createdAt: 1 })
       .populate("sender", "name");
 
-    res.json(messages);
 
   res.status(200).json( new ApiResponse(
     200,
