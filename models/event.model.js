@@ -34,11 +34,6 @@ const eventSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: "User",
     }],
-    status: {
-        type: String,
-        enum: ["upcoming", "ongoing", "completed", "cancelled"],
-        default: "upcoming",
-    },
     image: {
         type: String,
         required: [true, "Image is required"],

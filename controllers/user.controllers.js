@@ -37,12 +37,15 @@ const registerUser = asyncHandler(async(req, res) => {
         password,
         role: role || "attendee" // Default to attendee if no role is provided
     })
-    const createdUser = await User.findById(user._id).select("-password -refreshToken");
+    const { accessToken,  refreshToken } = await genearteAccessTokenAndRefreshToken(user._id)
+    const createdUser = await User.findById(user._id).select("-password");
     if(!createdUser) {
         throw new ApiError(500, "User creation failed");
     }
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
     res.status(201).json(
-        new ApiResponse(201, createdUser, "User registered successfully")
+        new ApiResponse(201, { user: createdUser, accessToken, refreshToken }, "User registered successfully", createdUser, "User registered successfully")
     )   
 })
 

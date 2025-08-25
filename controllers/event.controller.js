@@ -33,35 +33,54 @@ const newEvent = await Event.create({
     capacity,
     image: image.url,
     organizer: req.user._id,
-    status: Eventdate > now
-        ? "upcoming"
-        : Eventdate.toDateString() === now.toDateString()
-        ? "ongoing"
-        : Eventdate < now && Eventdate.getTime() + (60 * 60 * 1000) < now.getTime()
-        ? "completed"
-        : "past"
+   
 });
     res.status(201).json(
         new ApiResponse(201, newEvent, "Event created successfully")
     )
 })
 
+const getEventStatus = (eventDate) => {
+  const now = new Date();
+  if (eventDate > now) return "upcoming";
+  if (eventDate.toDateString() === now.toDateString()) return "ongoing";
+  if (eventDate < now && eventDate.getTime() + (60 * 60 * 1000) < now.getTime()) 
+    return "completed";
+  return "past";
+};
+
+
 // GET ALL EVENTS (Public)
 const getAllEvents = asyncHandler(async(req,res)=>{
     const events = await Event.find().populate("organizer","name email");
+
+    // Add computed status
+    const eventsWithStatus = events.map(event => ({
+        ...event.toObject(),
+        status: getEventStatus(event.date)
+    }));
+
     res.status(200).json(
-        new ApiResponse(200,events,"All Events Fetched")
+        new ApiResponse(200, eventsWithStatus, "All Events Fetched")
     )
 })
+
 
 // GET SINGLE EVENT
 const getEventbyId = asyncHandler(async(req,res)=>{
     const event = await Event.findById(req.params.id).populate("organizer","name email");
     if(!event) throw new ApiError(404,"Event Not Found");
+
+    const eventWithStatus = {
+        ...event.toObject(),
+        status: getEventStatus(event.date)
+    };
+
     res.status(200).json(
-        new ApiResponse(200,event,"Event Fetched Succesfully")
+        new ApiResponse(200, eventWithStatus, "Event Fetched Succesfully")
     )
 })
+
 
 // UPDATE EVENT(ONLY BY ORGANIZER)
 
