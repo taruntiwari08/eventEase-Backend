@@ -6,38 +6,41 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import Booking from '../models/booking.model.js';
 
 const createEvent = asyncHandler(async(req,res)=>{
-    const {title,description,date,location,Price,category,capacity,locationGoogleMapLink} = req.body;
-    if(![title,description,date,location,Price,category,capacity,locationGoogleMapLink].every(Boolean)){
-        throw new ApiError(400,"All Fields are Required");
+    try {
+        const {title,description,date,location,Price,category,capacity,locationGoogleMapLink} = req.body;
+        if(![title,description,date,location,Price,category,capacity,locationGoogleMapLink].every(Boolean)){
+            throw new ApiError(400,"All Fields are Required");
+        }
+        const eventImagePath = req.file?.path; //  file
+        if(!eventImagePath){
+            throw new ApiError(400,"Event Image is Required")
+        }
+    
+        const image = await uploadOnCloudinary(eventImagePath);
+        if(!image){
+            throw new ApiError(500,"Failed to Upload avtar");
+        }
+    const Eventdate = new Date(date); // ✅ parse date-time from request
+    
+    const newEvent = await Event.create({
+        title,
+        description,
+        date: Eventdate,
+        location,
+        locationGoogleMapLink,
+        Price,
+        category,
+        capacity,
+        image: image.url,
+        organizer: req.user._id,
+       
+    });
+        res.status(201).json(
+            new ApiResponse(201, newEvent, "Event created successfully")
+        )
+    } catch (error) {
+        throw new ApiError(500, error.message || "Error creating event");
     }
-    const eventImagePath = req.file?.path; //  file
-    if(!eventImagePath){
-        throw new ApiError(400,"Event Image is Required")
-    }
-
-    const image = await uploadOnCloudinary(eventImagePath);
-    if(!image){
-        throw new ApiError(500,"Failed to Upload avtar");
-    }
-const Eventdate = new Date(date); // ✅ parse date-time from request
-let now = new Date();
-
-const newEvent = await Event.create({
-    title,
-    description,
-    date: Eventdate,
-    location,
-    locationGoogleMapLink,
-    Price,
-    category,
-    capacity,
-    image: image.url,
-    organizer: req.user._id,
-   
-});
-    res.status(201).json(
-        new ApiResponse(201, newEvent, "Event created successfully")
-    )
 })
 
 const getEventStatus = (eventDate) => {
@@ -132,7 +135,7 @@ const deleteEvent = asyncHandler(async(req,res)=>{
 })
 
 const getEventAnalytics = asyncHandler(async (req, res) => {
-  const  eventId  = req.params.eventid;
+  const eventId  = req.params.eventid ;
 
   const event = await Event.findById(eventId);
   if (!event) throw new ApiError(404, "Event not found");

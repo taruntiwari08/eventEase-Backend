@@ -154,6 +154,23 @@ const verifyPayment = asyncHandler(async (req, res) => {
   
     await user.save();
 
+  // Update event attendees list
+const existingAttendee = event.attendees.find(
+  (att) => att.user.toString() === req.user._id.toString()
+);
+
+if (existingAttendee) {
+  existingAttendee.ticketsBooked += seatsBooked;
+} else {
+  event.attendees.push({
+    user: req.user._id,
+    ticketsBooked: seatsBooked,
+  });
+}
+
+await event.save();
+
+
   booking = await generateSecureQRCode(booking);          
   await booking.save();  
   res.status(201).json(new ApiResponse(201,{ 
@@ -188,6 +205,19 @@ const cancelBooking = asyncHandler(async (req, res) => {
 
   booking.paymentstatus = "cancelled";
   await booking.save();
+
+  if( booking.razorpayPaymentId ){
+    try {
+      const refund = await razorpay.payments.refund(booking.razorpayPaymentId, { 
+        amount: booking.amountPaid * 100
+       });
+      console.log("Refund initiated:", refund);
+      
+    } catch (error) {
+      throw new ApiError(500, "Failed to initiate refund");
+    }
+    console.log("Initiate refund via Razorpay API for payment ID:", booking.razorpayPaymentId);
+  }
 
   res.status(200).json(new ApiResponse(200, booking, "Booking cancelled successfully"));
 });

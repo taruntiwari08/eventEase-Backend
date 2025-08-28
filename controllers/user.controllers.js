@@ -196,10 +196,20 @@ const updateAccountDetails = asyncHandler(async(req,res)=>{
 })
 
 const getCurrentUser = asyncHandler(async(req,res)=>{
+    const userId = req.user?._id; // authMiddleware already set this
+    if (!userId) {
+        throw new ApiError(401, "Unauthorized: No user ID found");
+    }
+
+    // fetch fresh user (in case user data changed after token issue)
+    const user = await User.findById(userId).select("-password -refreshToken");
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
     return res
     .status(201)
     .json(
-        new ApiResponse(201,req.user,"Current User Fetched Successfully")
+        new ApiResponse(201,user,"Current User Fetched Successfully")
     )
 })
 

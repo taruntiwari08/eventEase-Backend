@@ -30,10 +30,20 @@ const eventSchema = new Schema({
         ref: "User",
         required: [true, "Organizer Name is required"],
     },
-    attendees: [{
+    attendees: [
+    {
+        user: {
         type: Schema.Types.ObjectId,
         ref: "User",
-    }],
+        required: true,
+        },
+        ticketsBooked: {
+        type: Number,
+        required: true,
+        default: 1,
+        }
+    }
+    ],
     image: {
         type: String,
         required: [true, "Image is required"],
@@ -46,7 +56,7 @@ const eventSchema = new Schema({
     },
     category: {
         type: String,
-        enum : ["tech", "movie", "music", "finance", "education", "other"],
+         enum : [ "Movie", "Music", "Workshop", "Sports", "Other"],
         required: [true, "Category is required"],
         trim: true,
         default: "other",
