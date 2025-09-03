@@ -68,6 +68,19 @@ const getAllEvents = asyncHandler(async(req,res)=>{
     )
 })
 
+const getAllActiveEvents = asyncHandler(async(req,res)=>{
+    const events = await Event.find({ activeStatus: { $ne: "cancelled" } }).populate("organizer","name email");
+
+    // Add computed status
+    const eventsWithStatus = events.map(event => ({
+        ...event.toObject(),
+        status: getEventStatus(event.date)
+    }));
+
+    res.status(200).json(
+        new ApiResponse(200, eventsWithStatus, "All Events Fetched")
+    )
+})
 
 // GET SINGLE EVENT
 const getEventbyId = asyncHandler(async(req,res)=>{
@@ -117,13 +130,10 @@ const updateEvent = asyncHandler(async(req,res)=>{
     )
 })
 
-// DELETE EVENT (ONLY BY ORGANIZER)
+// DELETE EVENT (ONLY BY Admin)
 const deleteEvent = asyncHandler(async(req,res)=>{
     const event = await Event.findById(req.params.id);
     if(!event) throw new ApiError(404,"Event Not Found");
-    if(event.organizer.toString() !== req.user._id.toString()){
-        throw new ApiError(403,"You are not authorized to delete this event");
-    }
     const oldImageUrl = event.image; // Store old image URL for deletion
     if(oldImageUrl){
         await deleteFromCloudinary(oldImageUrl); // Delete image from Cloudinary
@@ -155,11 +165,55 @@ const getEventAnalytics = asyncHandler(async (req, res) => {
   res.status(200).json(new ApiResponse(200, analytics[0] || {}, "Event analytics fetched successfully"));
 });
 
+const myEvents = asyncHandler(async (req, res) => { 
+    const events = await Event.find({ organizer: req.user._id });
+    res.status(200).json(new ApiResponse(200, events, "Events fetched successfully"))
+
+});
+
+const cancelEvent = asyncHandler(async (req, res) => {
+    const event = await Event.findById(req.params.eventid);
+    if (!event) throw new ApiError(404, "Event Not Found");
+    if (event.organizer.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "You are not authorized to cancel this event");
+    }
+    event.activeStatus = "cancelled";
+    await event.save();
+    const bookings = await Booking.find({ event: event._id })
+    console.log(bookings);
+    if(bookings.length === 0) {
+        return res.status(200).json(new ApiResponse(200, event, "Event cancelled successfully"));
+    }
+    for (const booking of bookings) {
+        booking.paymentstatus = "cancelled";
+        booking.cancelDate = new Date();
+        await booking.save();
+
+        if( booking.razorpayPaymentId ){
+        try {
+        const refund = await razorpay.payments.refund(booking.razorpayPaymentId, { 
+            amount: booking.amountPaid * 100
+        });
+        // console.log("Refund initiated:", refund);
+        
+        } catch (error) {
+        throw new ApiError(500, "Failed to initiate refund");
+        }
+        // console.log("Initiate refund via Razorpay API for payment ID:", booking.razorpayPaymentId);
+    }
+    }
+
+    res.status(200).json(new ApiResponse(200, event, "Event cancelled successfully"));
+});
+
 export {
     createEvent,
     getAllEvents,
     getEventbyId,
     updateEvent,
     deleteEvent,
-    getEventAnalytics
+    getEventAnalytics,
+    myEvents,
+    cancelEvent,
+    getAllActiveEvents
 }

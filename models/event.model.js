@@ -69,6 +69,12 @@ const eventSchema = new Schema({
     avgRating: { 
         type: Number, 
         default: 0 
+    },
+    activeStatus: {
+        enum: ["active", "cancelled", "postponed"],
+        type: String,
+        required: [true, "Active Status is required"],
+        default: "active",
     }
 
     

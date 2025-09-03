@@ -204,6 +204,7 @@ const cancelBooking = asyncHandler(async (req, res) => {
   }
 
   booking.paymentstatus = "cancelled";
+  booking.cancelDate = new Date();
   await booking.save();
 
   if( booking.razorpayPaymentId ){

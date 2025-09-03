@@ -19,11 +19,13 @@ export const initSocket = (server) => {
   io.use(async (socket, next) => {
     try {
       
-      const token = socket.handshake.auth?.token;
-      if (!token) return next(new Error("Authentication error"));
-
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findById(decoded.id).select("_id name role");
+      const token =  socket.handshake.auth?.token ||
+      socket.handshake.headers?.authorization?.replace("Bearer ", "");
+      if (!token) return next(new Error("Access token is required"));
+      console.log("🔑 Incoming token:", socket.handshake.auth?.token);
+      const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+      console.log("✅ Token verified:", decoded);
+      const user = await User.findById(decoded._id).select("-password -refreshToken");
       if (!user) return next(new Error("User not found"));
 
       socket.user = user;
@@ -46,7 +48,7 @@ export const initSocket = (server) => {
         });
 
         if (!booking) {
-          return socket.emit("error", "You are not allowed to join this chat");
+          return socket.emit("error", "Book this Event to Access the Community Room");
         }
 
         // Join chat room
@@ -69,6 +71,12 @@ export const initSocket = (server) => {
 
     socket.on("sendMessage", async ({ roomId, message }) => {
       if (!message?.trim()) return;
+      
+  // Check if user is part of the room
+    const rooms = Array.from(socket.rooms);
+    if (!rooms.includes(roomId)) {
+      return socket.emit("error", "You are not allowed to send messages to this room");
+    }
 
       const newMessage = await ChatMessage.create({
         roomId,

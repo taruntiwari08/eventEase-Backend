@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getAllEvents, getEventbyId,createEvent,updateEvent,deleteEvent,getEventAnalytics } from "../controllers/event.controller.js";
+import { getAllEvents, getEventbyId,createEvent,updateEvent,deleteEvent,getEventAnalytics,myEvents, cancelEvent, getAllActiveEvents } from "../controllers/event.controller.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 import authorizeRoles from "../middlewares/role.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
@@ -7,27 +7,39 @@ import { upload } from "../middlewares/multer.middleware.js";
 const eventRouter = Router();
 
 // Public routes
-eventRouter.route('/all-events').get(getAllEvents);
+eventRouter.route('/all-events').get(getAllActiveEvents);
 eventRouter.route('/event/:id').get(getEventbyId);
 
 // oranizer routes
 eventRouter.route('/create-event').post(
     authMiddleware,
-    authorizeRoles("organizer"), 
+    authorizeRoles("organizer", "admin"), 
     upload.single("image"), // Assuming the image field in the form is named 'image'
     createEvent
 );
 eventRouter.route('/update-event/:id').patch(
     authMiddleware,
-    authorizeRoles("organizer"),
-    upload.single("image"), // Assuming the image field in the form is named 'image'
+    authorizeRoles("organizer", "admin"),
+    upload.single("image"), 
     updateEvent
 );
-eventRouter.route('/delete-event/:id').delete(
+
+eventRouter.route('/analytics/:eventid').get(
+    authMiddleware,
+    authorizeRoles("organizer" , "admin"),
+    getEventAnalytics
+);
+
+eventRouter.route('/my-events').get(
+    authMiddleware,
+    authorizeRoles("organizer", "admin"),
+    myEvents
+);
+
+eventRouter.route('/cancel-event/:eventid').patch(
     authMiddleware,
     authorizeRoles("organizer"),
-    // No need for upload middleware here as we are not uploading a file
-    deleteEvent
+    cancelEvent
 );
 
 // Admin routes
@@ -37,17 +49,12 @@ eventRouter.route('/admin/all-events').get(
     getAllEvents
 );
 
-eventRouter.route('/admin/delete-event/:id').get(
+eventRouter.route('/admin/delete-event/:id').delete(
     authMiddleware,
     authorizeRoles("admin"),
     deleteEvent
 );
 
-eventRouter.route('/analytics/:eventid').get(
-    authMiddleware,
-    authorizeRoles("organizer"),
-    getEventAnalytics
-);
 
 
 export default eventRouter

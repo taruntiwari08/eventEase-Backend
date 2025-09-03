@@ -19,6 +19,9 @@ const bookingSchema = new Schema({
         enum: ["confirmed", "cancelled", "pending"],
         default: "pending",
     },
+    cancelDate: {
+        type: Date,
+    },  
     seatsBooked: {
         type: Number,
         required: [true, "Seats booked are required"],
@@ -46,7 +49,7 @@ const bookingSchema = new Schema({
     qrCode: {
         type: String 
     },
-    // New: track if user has checked in at the event
+    //track if user has checked in at the event
     checkedIn: {
         type: Boolean,
         default: false
