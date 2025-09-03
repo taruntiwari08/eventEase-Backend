@@ -32,8 +32,7 @@
     "multer": "^2.0.0",
     "qrcode": "^1.5.4",
     "razorpay": "^2.9.6",
-    "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1"
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
