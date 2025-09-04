@@ -45,17 +45,18 @@ const razorpay = new Razorpay({
 })
 
 // Razorpay payemnt order creation
-const createOrder = asyncHandler(async(req,res)=>{
-  const {eventId} = req.params;
-  const {seatsBooked,usePoints} = req.body;
+const createOrder = asyncHandler(async (req, res) => {
+  const { eventId } = req.params;
+  const { seatsBooked, usePoints } = req.body;
 
-  if(!eventId || !seatsBooked){
+  if (!eventId || !seatsBooked) {
     throw new ApiError(400, "Event ID and seats booked are required");
   }
-  const event = await Event.findById(eventId);
-  if(!event) throw new ApiError(404,"Event Not Found")
 
-  // Check if seats are available
+  const event = await Event.findById(eventId);
+  if (!event) throw new ApiError(404, "Event Not Found");
+
+  // Check seat availability
   const totalBookings = await Booking.aggregate([
     { $match: { event: event._id, paymentstatus: "confirmed" } },
     { $group: { _id: null, totalSeats: { $sum: "$seatsBooked" } } }
@@ -69,87 +70,77 @@ const createOrder = asyncHandler(async(req,res)=>{
   const totalPrice = event.Price * seatsBooked;
 
   const user = await User.findById(req.user._id);
-    let discount = 0;
-    if (usePoints) {
-        const maxDiscount = totalPrice;
-        discount = Math.min(user.walletPoints, maxDiscount);
+  let discount = 0;
+  if (usePoints) {
+    discount = Math.min(user.walletPoints, totalPrice);
+  }
+  let amountToPay = totalPrice - discount;
+
+  // ✅ Wallet-only booking (skip Razorpay)
+  if (amountToPay <= 0) {
+    const booking = await Booking.create({
+      user: req.user._id,
+      event: event._id,
+      seatsBooked,
+      razorpayOrderId: null,
+      razorpayPaymentId: null,
+      razorpaySignature: null,
+      amountPaid: 0,
+      paymentstatus: "confirmed",
+    });
+
+    user.walletPoints -= discount; // discount = totalPrice here
+    await user.save();
+
+    // Update attendees
+    const existingAttendee = event.attendees.find(
+      (att) => att.user.toString() === req.user._id.toString()
+    );
+
+    if (existingAttendee) {
+      existingAttendee.ticketsBooked += seatsBooked;
+    } else {
+      event.attendees.push({
+        user: req.user._id,
+        ticketsBooked: seatsBooked,
+      });
     }
-    const amountToPay = totalPrice - discount;
+    await event.save();
 
-    if (amountToPay <= 0) {
-  // Fully covered by wallet
-  amountToPay = 0;
+    const qrBooking = await generateSecureQRCode(booking);
+    await qrBooking.save();
 
-  //Directly create a confirmed booking without Razorpay
-  const booking = await Booking.create({
-    user: req.user._id,
-    event: event._id,
-    seatsBooked,
-    razorpayOrderId: null,
-    razorpayPaymentId: null,
-    razorpaySignature: null,
-    amountPaid: 0,
-    paymentstatus: "confirmed",
-  });
+    return res.status(201).json(
+      new ApiResponse(201, {
+        booking: qrBooking,
+        earnedPoints: 0,
+        remainingPoints: user.walletPoints,
+      }, "Booking created successfully using wallet only")
+    );
+  }
 
-    const user = await User.findById(req.user._id);
-  if( discount > 0) user.walletPoints -= discount;
-  const earnedPoints = Math.floor((amountPaid) / 20);
-    user.walletPoints += earnedPoints;
-  
-  await user.save();
+  // ✅ Normal Razorpay flow
+  const options = {
+    amount: amountToPay * 100, // Convert to paise
+    currency: "INR",
+    receipt: `receipt_${Date.now()}`
+  };
 
-  // Update event attendees list
-const existingAttendee = event.attendees.find(
-  (att) => att.user.toString() === req.user._id.toString()
-);
+  const order = await razorpay.orders.create(options);
 
-if (existingAttendee) {
-  existingAttendee.ticketsBooked += seatsBooked;
-} else {
-  event.attendees.push({
-    user: req.user._id,
-    ticketsBooked: seatsBooked,
-  });
-}
-
-await event.save();
-
-
-  booking = await generateSecureQRCode(booking);          
-  await booking.save();  
-  res.status(201).json(new ApiResponse(201,{ 
-    booking,
-    earnedPoints:0,
-    remainingPoints: user.walletPoints
-  },
-    "Booking created successfully"));
-}
-
-
-    const options = {
-      amount: amountToPay*100, // Convert to PESE
-      currency: "INR",
-      receipt: `receipt_${Date.now()}`
-    };
-
-    const order = await razorpay.orders.create(options);
-    console.log("Order created:", order);
-
-    res.status(200).json(
-
-        new ApiResponse(200, {
-            orderId: order.id,
-            currency: order.currency,
-            amount: order.amount / 100, // Convert back to original amount
-            seatsBooked,
-            eventId,
-            totalPrice,
-            discount,
-            remainingPoints: user.walletPoints - discount
-        }, "Order created successfully")
-    )
-})
+  res.status(200).json(
+    new ApiResponse(200, {
+      orderId: order.id,
+      currency: order.currency,
+      amount: order.amount / 100,
+      seatsBooked,
+      eventId,
+      totalPrice,
+      discount,
+      remainingPoints: user.walletPoints - discount
+    }, "Order created successfully")
+  );
+});
 
 // Create Booking
 const verifyPayment = asyncHandler(async (req, res) => {
