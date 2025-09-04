@@ -38,7 +38,7 @@ eventRouter.route('/my-events').get(
 
 eventRouter.route('/cancel-event/:eventid').patch(
     authMiddleware,
-    authorizeRoles("organizer"),
+    authorizeRoles("organizer", "admin"),
     cancelEvent
 );
 
