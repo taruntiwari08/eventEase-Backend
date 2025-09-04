@@ -20,7 +20,7 @@ const createEvent = asyncHandler(async(req,res)=>{
         if(!image){
             throw new ApiError(500,"Failed to Upload Event Image");
         }
-    const Eventdate = new Date(date).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });; // ✅ parse date-time from request
+    const Eventdate = new Date(date); // ✅ parse date-time from request
     
     const newEvent = await Event.create({
         title,
