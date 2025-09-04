@@ -18,9 +18,9 @@ const createEvent = asyncHandler(async(req,res)=>{
     
         const image = await uploadOnCloudinary(req.file.buffer);
         if(!image){
-            throw new ApiError(500,"Failed to Upload avtar");
+            throw new ApiError(500,"Failed to Upload Event Image");
         }
-    const Eventdate = new Date(date); // ✅ parse date-time from request
+    const Eventdate = new Date(date).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });; // ✅ parse date-time from request
     
     const newEvent = await Event.create({
         title,
@@ -107,7 +107,7 @@ const updateEvent = asyncHandler(async(req,res)=>{
         throw new ApiError(403,"You are not authorized to update this event");
     }
     // Handle image upload if provided
-    if(req.file?.path) {
+    if(req.file.buffer) {
         console.log("Image file found in request");
         const eventImagePath = req.file.buffer; // files or file
         if(!eventImagePath){
