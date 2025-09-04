@@ -75,6 +75,58 @@ const createOrder = asyncHandler(async(req,res)=>{
         discount = Math.min(user.walletPoints, maxDiscount);
     }
     const amountToPay = totalPrice - discount;
+
+    if (amountToPay <= 0) {
+  // Fully covered by wallet
+  amountToPay = 0;
+
+  //Directly create a confirmed booking without Razorpay
+  const booking = await Booking.create({
+    user: req.user._id,
+    event: event._id,
+    seatsBooked,
+    razorpayOrderId: null,
+    razorpayPaymentId: null,
+    razorpaySignature: null,
+    amountPaid: 0,
+    paymentstatus: "confirmed",
+  });
+
+    const user = await User.findById(req.user._id);
+  if( discount > 0) user.walletPoints -= discount;
+  const earnedPoints = Math.floor((amountPaid) / 20);
+    user.walletPoints += earnedPoints;
+  
+  await user.save();
+
+  // Update event attendees list
+const existingAttendee = event.attendees.find(
+  (att) => att.user.toString() === req.user._id.toString()
+);
+
+if (existingAttendee) {
+  existingAttendee.ticketsBooked += seatsBooked;
+} else {
+  event.attendees.push({
+    user: req.user._id,
+    ticketsBooked: seatsBooked,
+  });
+}
+
+await event.save();
+
+
+  booking = await generateSecureQRCode(booking);          
+  await booking.save();  
+  res.status(201).json(new ApiResponse(201,{ 
+    booking,
+    earnedPoints:0,
+    remainingPoints: user.walletPoints
+  },
+    "Booking created successfully"));
+}
+
+
     const options = {
       amount: amountToPay*100, // Convert to PESE
       currency: "INR",
@@ -149,7 +201,7 @@ const verifyPayment = asyncHandler(async (req, res) => {
 
   const user = await User.findById(req.user._id);
   if( discount > 0) user.walletPoints -= discount;
-  const earnedPoints = Math.floor((amountPaid + discount) / 20);
+  const earnedPoints = Math.floor((amountPaid) / 20);
     user.walletPoints += earnedPoints;
   
     await user.save();
