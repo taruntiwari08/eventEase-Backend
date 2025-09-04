@@ -12,7 +12,7 @@ cloudinary.config({
 });
 
 // Upload buffer directly
-export const uploadOnCloudinary = (fileBuffer) => {
+const uploadOnCloudinary = (fileBuffer) => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       { resource_type: "auto" },
@@ -42,4 +42,4 @@ export const uploadOnCloudinary = (fileBuffer) => {
     };
    
 
-    export {uploadOnCloudinary,deleteFromCloudinary}
+export {uploadOnCloudinary,deleteFromCloudinary}
