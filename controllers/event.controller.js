@@ -11,7 +11,7 @@ const createEvent = asyncHandler(async(req,res)=>{
         if(![title,description,date,location,Price,category,capacity,locationGoogleMapLink].every(Boolean)){
             throw new ApiError(400,"All Fields are Required");
         }
-        const eventImagePath = req.file?.path; //  file
+        const eventImagePath = req.file; //  file
         if(!eventImagePath){
             throw new ApiError(400,"Event Image is Required")
         }
