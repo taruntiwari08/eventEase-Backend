@@ -16,7 +16,7 @@ const createEvent = asyncHandler(async(req,res)=>{
             throw new ApiError(400,"Event Image is Required")
         }
     
-        const image = await uploadOnCloudinary(eventImagePath);
+        const image = await uploadOnCloudinary(req.file.buffer);
         if(!image){
             throw new ApiError(500,"Failed to Upload avtar");
         }
@@ -31,7 +31,7 @@ const createEvent = asyncHandler(async(req,res)=>{
         Price,
         category,
         capacity,
-        image: image.url,
+        image: image.secure_url,
         organizer: req.user._id,
        
     });
@@ -109,7 +109,7 @@ const updateEvent = asyncHandler(async(req,res)=>{
     // Handle image upload if provided
     if(req.file?.path) {
         console.log("Image file found in request");
-        const eventImagePath = req.file.path; // files or file
+        const eventImagePath = req.file.buffer; // files or file
         if(!eventImagePath){
             throw new ApiError(400,"Event Image is Required")
         }
@@ -121,7 +121,7 @@ const updateEvent = asyncHandler(async(req,res)=>{
         if(!image){
             throw new ApiError(500,"Failed to Upload Image");
         }
-        event.image = image.url; // Update the image URL
+        event.image = image.secure_url; // Update the image URL
     }
     Object.assign(event, req.body); // Update event with new data
     await event.save();
