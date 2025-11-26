@@ -1,5 +1,6 @@
-.env
 razortest.js
 checkintest.js
 client.js
 client2.js
+config.bat
+node_modules
